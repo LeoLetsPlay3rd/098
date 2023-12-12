@@ -22,8 +22,16 @@ public class LevelChanger : MonoBehaviour
         // Check for input to trigger scene transition
         if (Input.GetKeyDown(KeyCode.F) && !isFading && SceneTransitionController.Instance.CanTransition)
         {
-            // Start the fade-in effect when F is pressed
-            StartCoroutine(FadeEffect(new Color(0.1176f, 0.1176f, 0.1176f, 1f), Color.clear));
+            // Check if the current scene is not "CharacterTest" before allowing the scene change
+            if (SceneManager.GetActiveScene().name != "CharacterTest")
+            {
+                // Start the fade-in effect when F is pressed
+                StartCoroutine(FadeEffect(new Color(0.1176f, 0.1176f, 0.1176f, 1f), Color.clear));
+            }
+            else
+            {
+                Debug.Log("Cannot change scene from 'CharacterTest'.");
+            }
         }
     }
 

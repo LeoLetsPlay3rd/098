@@ -12,8 +12,9 @@ public class AnimationAndMovementController : MonoBehaviour
     Vector2 currentMovementInput;
     Vector3 currentMovement;
     bool isMovementPressed;
-    float rotationFactorPerFrame = 3.0f;
     float movementSpeed = 3.0f;
+    float rotationVelocity;
+    float rotationSmoothTime = 0.1f;
 
     void Awake()
     {
@@ -26,7 +27,7 @@ public class AnimationAndMovementController : MonoBehaviour
         playerInputs.CharacterControls.Move.performed += onMovementInput;
     }
 
-    void onMovementInput (InputAction.CallbackContext context)
+    void onMovementInput(InputAction.CallbackContext context)
     {
         currentMovementInput = context.ReadValue<Vector2>();
         currentMovement.x = currentMovementInput.x;
@@ -34,22 +35,35 @@ public class AnimationAndMovementController : MonoBehaviour
         isMovementPressed = currentMovementInput.x != 0 || currentMovementInput.y != 0;
     }
 
+
     void handleRotation()
     {
-        Vector3 positionToLookAt;
+        Vector3 moveDirection = new Vector3(currentMovement.x, 0.0f, currentMovement.z).normalized;
 
-        positionToLookAt.x = currentMovement.x;
-        positionToLookAt.y = 0.0f;
-        positionToLookAt.z = currentMovement.z;
-
-        Quaternion currentRotation = transform.rotation;
-
-        if (isMovementPressed)
+        if (moveDirection != Vector3.zero)
         {
-            Quaternion targetRotation = Quaternion.LookRotation(positionToLookAt);
-            transform.rotation = Quaternion.Slerp(currentRotation, targetRotation, rotationFactorPerFrame * Time.deltaTime);
+            float targetAngle = Mathf.Atan2(moveDirection.x, moveDirection.z) * Mathf.Rad2Deg;
+            float angle = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetAngle + Camera.main.transform.eulerAngles.y, ref rotationVelocity, rotationSmoothTime);
+
+            transform.rotation = Quaternion.Euler(0f, angle, 0f);
         }
     }
+
+    void Update()
+    {
+        handleRotation();
+
+        // Convert input to world space based on camera orientation
+        Vector3 worldSpaceInput = Camera.main.transform.TransformDirection(new Vector3(currentMovement.x, 0.0f, currentMovement.z));
+
+        // Set the y component of worldSpaceInput to 0 for strafing
+        worldSpaceInput.y = 0.0f;
+
+        characterController.Move(worldSpaceInput * movementSpeed * Time.deltaTime);
+
+        handleAnimation();
+    }
+
 
     void handleAnimation()
     {
@@ -64,14 +78,6 @@ public class AnimationAndMovementController : MonoBehaviour
         {
             animator.SetBool("isWalking", false);
         }
-    }
-
-
-    void Update()
-    {
-        handleRotation();
-        characterController.Move(currentMovement * movementSpeed * Time.deltaTime);
-        handleAnimation();
     }
 
     void OnEnable()
